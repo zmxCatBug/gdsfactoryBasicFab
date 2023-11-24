@@ -388,12 +388,16 @@ def OpenPad(
 def DBR(
         Width1:float = 2,
         Width2:float = 1,
+        WidthHeat = 4,
+        WidthRoute = 10,
         Length1:float = 0.4,
         Length2:float = 0.5,
         Length1E:float = 0.6,
         Length2E:float = 0.7,
         Period:float = 100,
         IsSG: bool = False,
+        IsHeat:bool = False,
+        hetlayer:LayerSpec = (31,0),
         layer: LayerSpec = "WG",
         layers: LayerSpecs | None = None,
         Name = "DBR"
@@ -425,6 +429,17 @@ def DBR(
             c.add_array(op,columns=Period,rows = 1,spacing=(Length2+Length1,100))
             c.add_port(name="o1",port=r1.ports["o1"])
             c.add_port(name="o2",port=r2.ports["o2"],center=[(Length1+Length2)*Period,0])
+    if IsHeat:
+        length_dbr = c.ports["o2"].center-c.ports["o1"].center
+        heater = c << gf.c.straight(width=WidthHeat,length=length_dbr[0],layer = hetlayer)
+        heater.connect("o1",c.ports["o1"]).rotate(180,"o1")
+        heattaper1 = c << gf.c.taper(width1=WidthHeat,width2=WidthRoute,length=WidthRoute/2-WidthHeat/2,layer = hetlayer)
+        heattaper2 = c << gf.c.taper(width1=WidthHeat, width2=WidthRoute, length=WidthRoute / 2 - WidthHeat / 2,
+                                 layer=hetlayer)
+        heattaper1.connect("o1",destination=heater.ports["o1"])
+        heattaper2.connect("o1",destination=heater.ports["o2"])
+        c.add_port(name="h1",port=heattaper1.ports["o2"])
+        c.add_port(name="h2", port=heattaper2.ports["o2"])
     return c
 def OffsetRamp(
         length: float = 10.0,
